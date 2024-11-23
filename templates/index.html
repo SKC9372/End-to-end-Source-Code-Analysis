@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Source Code Analysis Chatbot</title>
+    <style>
+      /* General styles */
+      body {
+        font-family: Arial, sans-serif;
+        line-height: 1.6;
+        background-color: #f4f4f9;
+        color: #333;
+        margin: 0;
+        padding: 0;
+      }
+
+      h1, h2 {
+        text-align: center;
+        color: #444;
+      }
+
+      h1 {
+        background-color: #0066cc;
+        color: white;
+        padding: 20px 0;
+        margin: 0;
+      }
+
+      h2 {
+        margin-top: 40px;
+        font-size: 1.5em;
+      }
+
+      form {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin: 20px 0;
+      }
+
+      label {
+        margin-bottom: 10px;
+        font-weight: bold;
+      }
+
+      input[type="text"] {
+        width: 80%;
+        max-width: 500px;
+        padding: 10px;
+        margin-bottom: 10px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        font-size: 1em;
+      }
+
+      button {
+        background-color: #0066cc;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 1em;
+      }
+
+      button:hover {
+        background-color: #004d99;
+      }
+
+      hr {
+        margin: 40px 0;
+        border: none;
+        height: 1px;
+        background: #ddd;
+      }
+
+      /* Chat section */
+      #chat-box {
+        border: 1px solid #ccc;
+        background: white;
+        padding: 15px;
+        width: 80%;
+        max-width: 600px;
+        height: 300px;
+        overflow-y: auto;
+        margin: 0 auto;
+        border-radius: 5px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      #chat-box div {
+        margin-bottom: 10px;
+      }
+
+      #chat-box strong {
+        color: #0066cc;
+      }
+
+      #chat-form {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-top: 10px;
+      }
+
+      #chat-input {
+        width: 80%;
+        max-width: 500px;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        font-size: 1em;
+        margin-bottom: 10px;
+      }
+
+      #repo-response, #chat-response {
+        text-align: center;
+        margin-top: 20px;
+        color: #444;
+      }
+
+      #repo-response p,
+      #chat-response p {
+        padding: 10px;
+        background: #e6f7ff;
+        border: 1px solid #b3e0ff;
+        border-radius: 5px;
+        display: inline-block;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Page Title -->
+    <h1>Source Code Analysis Chatbot</h1>
+
+    <!-- Repository Ingestion Section -->
+    <h2>Step 1: Ingest a GitHub Repository</h2>
+    <form id="repo-form">
+      <label for="repo-url">Enter GitHub Repository URL:</label>
+      <input
+        type="text"
+        id="repo-url"
+        name="repo-url"
+        placeholder="e.g., https://github.com/user/repo"
+        required
+      />
+      <button type="button" onclick="submitRepo()">Ingest Repository</button>
+    </form>
+    <div id="repo-response"></div>
+    <hr />
+
+    <!-- Chat Section -->
+    <h2>Step 2: Ask Questions About the Repository</h2>
+    <div id="chat-box">
+      <!-- Chat messages will appear here -->
+    </div>
+    <form id="chat-form">
+      <label for="chat-input">Ask a Question:</label>
+      <input
+        type="text"
+        id="chat-input"
+        name="chat-input"
+        placeholder="Type your question here"
+        required
+      />
+      <button type="button" onclick="sendMessage()">Send</button>
+    </form>
+    <div id="chat-response"></div>
+
+    <!-- JavaScript -->
+    <script>
+      // Function to send the repository URL to Flask for ingestion
+      function submitRepo() {
+        const repoUrl = document.getElementById("repo-url").value;
+
+        if (!repoUrl) {
+          alert("Please enter a valid GitHub repository URL.");
+          return;
+        }
+
+        // Send the repository URL to Flask's `/chatbot` endpoint
+        fetch("/chatbot", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: `question=${encodeURIComponent(repoUrl)}`, // Send as 'question'
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            document.getElementById(
+              "repo-response"
+            ).innerHTML = `<p>${data.response}</p>`;
+          })
+          .catch((error) => {
+            console.error("Error:", error);
+            document.getElementById(
+              "repo-response"
+            ).innerHTML = `<p style="color: red;">Failed to ingest repository. Please try again.</p>`;
+          });
+      }
+
+      // Function to send chat messages to Flask and display responses
+      function sendMessage() {
+        const chatInput = document.getElementById("chat-input").value;
+
+        if (!chatInput) {
+          alert("Please enter a question.");
+          return;
+        }
+
+        // Add user message to chat box
+        const chatBox = document.getElementById("chat-box");
+        chatBox.innerHTML += `<div><strong>You:</strong> ${chatInput}</div>`;
+        chatBox.scrollTop = chatBox.scrollHeight; // Auto-scroll to bottom
+        document.getElementById("chat-input").value = ""; // Clear input field
+
+        // Send the message to Flask's `/get` endpoint
+        fetch("/get", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: `msg=${encodeURIComponent(chatInput)}`, // Send as 'msg'
+        })
+          .then((response) => response.text())
+          .then((data) => {
+            chatBox.innerHTML += `<div><strong>Bot:</strong> ${data}</div>`;
+            chatBox.scrollTop = chatBox.scrollHeight; // Auto-scroll to bottom
+          })
+          .catch((error) => {
+            console.error("Error:", error);
+            chatBox.innerHTML += `<div><strong>Bot:</strong> Something went wrong. Please try again.</div>`;
+          });
+      }
+    </script>
+  </body>
+</html>

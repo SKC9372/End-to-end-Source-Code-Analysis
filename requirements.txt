@@ -1,0 +1,12 @@
+langchain
+langchain_community
+langchain-google-genai
+python-dotenv
+langchain_experimental
+sentence-transformers
+langchain_chroma
+langchainhub
+unstructured
+chromadb
+GitPython
+flask
